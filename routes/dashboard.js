@@ -93,11 +93,11 @@ router.get('/products', auth, async (req, res) => {
 });
 
 // Create new product
-router.post('/products', auth, upload.single('image'), async (req, res) => {
+router.post('/products', auth, upload.array('images', 5), async (req, res) => {
   try {
     const productData = {
       ...req.body,
-      image: req.file ? `/uploads/${req.file.filename}` : req.body.image
+      images: req.files ? req.files.map(file => `/uploads/${file.filename}`) : []
     };
     
     const product = new Product(productData);
