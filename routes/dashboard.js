@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
+const User = require('../models/User');
+const Contact = require('../models/Contact');
 const multer = require('multer');
 const path = require('path');
 const { auth, adminAuth } = require('../middleware/auth');
@@ -47,6 +49,15 @@ router.get('/stats', auth, async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+});
+
+router.get('/users', auth, adminAuth, async (req, res) => {
+    try {
+        const users = await User.find().select('-password').sort({ createdAt: -1 });
+        res.json({ users });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 });
 
 // Get all products for dashboard
@@ -169,6 +180,17 @@ router.get('/new-items', auth, async (req, res) => {
     res.json(newItems);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all contact messages for admin dashboard
+router.get('/contacts', auth, adminAuth, async (req, res) => {
+  try {
+    const contacts = await Contact.find().sort({ createdAt: -1 });
+    res.json({ contacts });
+  } catch (error) {
+    console.error('Error fetching contacts:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 

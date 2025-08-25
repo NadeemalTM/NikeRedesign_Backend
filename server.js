@@ -4,12 +4,12 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Import routes
 const productRoutes = require('./routes/products');
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
+const contactRoutes = require('./routes/contacts'); // Import contacts route
 
 dotenv.config();
 
@@ -27,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/contacts', contactRoutes); // Use contacts route
 
 // MongoDB connection with DNS error handling
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/nike-shop';
