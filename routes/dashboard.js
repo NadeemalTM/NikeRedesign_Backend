@@ -5,35 +5,86 @@ const User = require('../models/User');
 const Contact = require('../models/Contact');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { auth, adminAuth } = require('../middleware/auth');
 
-// Configure multer for file uploads
+// Ensure uploads directory exists
+const uploadsDir = 'uploads/';
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Enhanced file validation
+const validateFile = (file) => {
+  const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'jpeg,jpg,png,gif,webp').split(',');
+  const maxSize = parseInt(process.env.MAX_FILE_SIZE) || 5242880; // 5MB default
+  
+  // Check file size
+  if (file.size > maxSize) {
+    throw new Error(`File size exceeds ${Math.round(maxSize / 1024 / 1024)}MB limit`);
+  }
+  
+  // Check file type
+  const fileExtension = path.extname(file.originalname).toLowerCase().slice(1);
+  if (!allowedTypes.includes(fileExtension)) {
+    throw new Error(`File type .${fileExtension} is not allowed. Allowed types: ${allowedTypes.join(', ')}`);
+  }
+  
+  // Check MIME type
+  const allowedMimeTypes = [
+    'image/jpeg', 'image/jpg', 'image/png', 
+    'image/gif', 'image/webp'
+  ];
+  if (!allowedMimeTypes.includes(file.mimetype)) {
+    throw new Error(`MIME type ${file.mimetype} is not allowed`);
+  }
+  
+  return true;
+};
+
+// Sanitize filename
+const sanitizeFilename = (filename) => {
+  // Remove potentially dangerous characters
+  return filename
+    .replace(/[^a-zA-Z0-9.-]/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '');
+};
+
+// Configure multer for file uploads with enhanced security
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+    try {
+      validateFile(file);
+      const sanitizedName = sanitizeFilename(file.originalname);
+      const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + sanitizedName;
+      cb(null, uniqueName);
+    } catch (error) {
+      cb(error);
+    }
   }
 });
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { 
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5242880, // 5MB default
+    files: 5 // Maximum 5 files per request
+  },
   fileFilter: function (req, file, cb) {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'));
+    try {
+      validateFile(file);
+      cb(null, true);
+    } catch (error) {
+      cb(error, false);
     }
   }
 });
 
-router.get('/stats', auth, async (req, res) => {
+router.get('/stats', auth, adminAuth, async (req, res) => {
   try {
     const totalProducts = await Product.countDocuments();
     const newProducts = await Product.countDocuments({ category: 'new' });
@@ -47,7 +98,11 @@ router.get('/stats', auth, async (req, res) => {
       lowStockProducts
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch dashboard statistics',
+      code: 'STATS_ERROR'
+    });
   }
 });
 
