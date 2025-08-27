@@ -167,14 +167,16 @@ router.post('/register', rateLimitAuth, async (req, res) => {
 router.post('/login', rateLimitAuth, async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt:', { email });
 
-    // Validate inputs
+    // Validate email only for login (password validation should only be for registration)
     const validatedEmail = validateInput.email(email);
-    const validatedPassword = validateInput.password(password);
+    const validatedPassword = password; // Don't validate password strength for login
 
     // Find user by email
     const user = await User.findOne({ email: validatedEmail }).select('+password');
     if (!user) {
+      console.log('User not found for email:', validatedEmail);
       recordFailedAttempt(req);
       return res.status(401).json({ 
         message: 'Invalid email or password',
@@ -183,8 +185,12 @@ router.post('/login', rateLimitAuth, async (req, res) => {
     }
 
     // Check password
+    console.log('Comparing password for user:', user.email);
     const isMatch = await user.comparePassword(validatedPassword);
+    console.log('Password match result:', isMatch);
+    
     if (!isMatch) {
+      console.log('Password mismatch for user:', user.email);
       recordFailedAttempt(req);
       return res.status(401).json({ 
         message: 'Invalid email or password',
@@ -218,7 +224,6 @@ router.post('/login', rateLimitAuth, async (req, res) => {
       message: 'Login failed. Please try again.',
       code: 'LOGIN_ERROR'
     });
-    res.status(500).json({ message: error.message });
   }
 });
 
@@ -320,7 +325,7 @@ const createDefaultAccounts = async () => {
       const admin = new User({
         username: 'admin@nike.com',
         email: 'admin@nike.com',
-        password: '123456',
+        password: 'AdminPass123!',
         role: 'admin'
       });
       await admin.save();
@@ -332,7 +337,7 @@ const createDefaultAccounts = async () => {
       const user = new User({
         username: 'user1@nike.com',
         email: 'user1@nike.com',
-        password: '123456',
+        password: 'UserPass123!',
         role: 'user'
       });
       await user.save();

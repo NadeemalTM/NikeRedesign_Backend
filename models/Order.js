@@ -112,6 +112,14 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'failed', 'refunded'],
     default: 'pending'
   },
+  stripePaymentId: {
+    type: String,
+    default: ''
+  },
+  stripeClientSecret: {
+    type: String,
+    default: ''
+  },
   orderStatus: {
     type: String,
     enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],

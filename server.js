@@ -13,6 +13,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
 const contactRoutes = require('./routes/contacts');
+const stripeRoutes = require('./routes/stripe');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Load environment variables
@@ -103,6 +104,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // MongoDB connection with DNS error handling
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/nike-shop';
