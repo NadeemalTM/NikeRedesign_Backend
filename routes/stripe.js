@@ -166,4 +166,33 @@ async function handlePaymentIntentFailed(paymentIntent) {
   // You might want to update order status or send notification here
 }
 
+// Verify payment and get order details
+router.get('/payment/:paymentIntentId', auth, async (req, res) => {
+  try {
+    const { paymentIntentId } = req.params;
+
+    // Get payment intent from Stripe
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({ message: 'Payment not completed' });
+    }
+
+    // Find order by stripePaymentId
+    const order = await Order.findOne({ 
+      stripePaymentId: paymentIntentId,
+      user: req.user._id 
+    }).populate('items.product', 'name price image');
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.status(500).json({ message: 'Failed to verify payment', error: error.message });
+  }
+});
+
 module.exports = router;
